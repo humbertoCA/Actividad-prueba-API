@@ -1,7 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.services.processor import read_file
-
-print("debug")
+from app.services.processor import read_file, validate_columns, validate_rows, process_data
 
 router = APIRouter()
 
@@ -19,10 +17,16 @@ async def upload_file(file: UploadFile = File(...)):
     try:
         df = read_file(file)
 
+        validate_columns(df)
+
+        errors = validate_rows(df)
+
+        result = process_data(df)
+
         return {
             "filename": file.filename,
-            "rows": len(df),
-            "columns": list(df.columns)
+            "summary": result,
+            "errors": errors
         }
 
     except Exception as e:
