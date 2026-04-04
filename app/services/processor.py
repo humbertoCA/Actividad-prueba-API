@@ -52,11 +52,13 @@ def validate_rows(df):
 def process_data(df):
     total_records = len(df)
 
-    total_amount = df["Monto"].astype(float).sum()
+    df["Monto"] = df["Monto"].astype(float)
+
+    total_amount = df["Monto"].sum()
 
     by_status = df.groupby("Estatus").size().to_dict()
 
-    by_category = df.groupby("Categoría")["Monto"].astype(float).sum().to_dict()
+    by_category = df.groupby("Categoría")["Monto"].sum().to_dict()
 
     return {
         "total_records": total_records,

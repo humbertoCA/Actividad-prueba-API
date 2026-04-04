@@ -1,0 +1,4 @@
+Folio,Fecha,Categoría,Monto,Estatus
+1,2024-01-01,Ventas,1000,pagado
+2,2024-01-02,Servicios,500,pendiente
+3,2024-01-03,Ventas,700,pagado
