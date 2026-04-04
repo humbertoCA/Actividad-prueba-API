@@ -35,26 +35,28 @@ def validate_rows(df):
         try:
             float(row["Monto"])
         except:
-            errors.append({
+            errors.append{
                 "row": index,
                 "error": "Monto inválido"
-            })
+            }
 
         # Validar fecha (simple)
-        if not row["Fecha"]:
-            errors.append({
+        if pd.isna(row["Fecha"]) or str(row["Fecha"]).strip() == "":
+            errors.append{
                 "row": index,
                 "error": "Fecha vacía"
-            })
+            }
 
     return errors
 
 def process_data(df):
     total_records = len(df)
 
-    df["Monto"] = df["Monto"].astype(float)
+    df["Monto"] = pd.to_numeric(df["Monto"], errors="coerce")
 
-    total_amount = df["Monto"].sum()
+    valid_df = df.dropna(subset=["Monto"])
+
+    total_amount = valid_df["Monto"].sum()
 
     by_status = df.groupby("Estatus").size().to_dict()
 
