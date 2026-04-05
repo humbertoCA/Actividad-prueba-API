@@ -2,6 +2,7 @@ import pandas as pd
 from fastapi import UploadFile
 
 def read_file(file: UploadFile):
+    
     try:
         # CSV
         if file.filename.endswith(".csv"):
@@ -10,6 +11,9 @@ def read_file(file: UploadFile):
         # Excel
         elif file.filename.endswith(".xlsx"):
             df = pd.read_excel(file.file)
+
+        elif df.empty:
+            raise ValueError("El archivo está vacío")
         
         else:
             raise ValueError("Formato no soportado")
@@ -35,18 +39,26 @@ def validate_rows(df):
         try:
             float(row["Monto"])
         except:
-            errors.append{
+            errors.append({
                 "row": index,
                 "error": "Monto inválido"
-            }
+            })
 
         # Validar fecha (simple)
         if pd.isna(row["Fecha"]) or str(row["Fecha"]).strip() == "":
-            errors.append{
+            errors.append({
                 "row": index,
                 "error": "Fecha vacía"
-            }
-
+            })
+        else:
+            # Fecha mal formateada
+            try:
+                pd.to_datetime(row["Fecha"])
+            except:
+                errors.append({
+                    "row": index,
+                    "error": "Fecha con formato inválido"
+                })
     return errors
 
 def process_data(df):
@@ -68,3 +80,30 @@ def process_data(df):
         "by_status": by_status,
         "by_category": by_category
     }
+
+def detect_duplicates(df):
+    duplicates = df[df.duplicated(subset=["Folio"], keep=False)]
+
+    errors = []
+
+    for index, row in duplicates.iterrows():
+        errors.append({
+            "row": index,
+            "error": f"Folio duplicado: {row['Folio']}"
+        })
+
+    return errors
+
+def validate_date_format(df):
+    errors = []
+
+    for index, row in df.iterrows():
+        try:
+            pd.to_datetime(row["Fecha"])
+        except:
+            errors.append({
+                "row": index,
+                "error": "Fecha con formato inválido"
+            })
+
+    return errors

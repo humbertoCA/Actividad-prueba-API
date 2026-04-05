@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.services.processor import read_file, validate_columns, validate_rows, process_data
+from app.services.processor import read_file, validate_columns, validate_rows, process_data, detect_duplicates 
 
 router = APIRouter()
 
@@ -17,9 +17,16 @@ async def upload_file(file: UploadFile = File(...)):
     try:
         df = read_file(file)
 
-        validate_columns(df)
+        if df.empty: #Archivo vacio
+            raise ValueError("El archivo está vacío")
 
-        errors = validate_rows(df)
+        validate_columns(df) #Columnas obligatorias
+
+        duplicate_errors = detect_duplicates(df) #Duplicados
+
+        row_errors = validate_rows(df) #Validaciones por fila
+
+        errors = row_errors + duplicate_errors #Union de errores
 
         result = process_data(df)
 

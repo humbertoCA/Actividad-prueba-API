@@ -1,4 +1,5 @@
 Folio,Fecha,Categoría,Monto,Estatus
 1,2024-01-01,Ventas,abc,pagado
+1,2024-01-02,Servicios,1000,pagado
 2,,Servicios,500,pendiente
-3,2024-01-03,Ventas,700,pagado
+3,7 de Marzo 2024,Ventas,700,pagado
