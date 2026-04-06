@@ -1,5 +1,19 @@
 import pandas as pd
+import unicodedata
 from fastapi import UploadFile
+from app.db.database import engine
+from app.db.models import transactions
+
+def normalize_columns(df):
+    df.columns = [
+        unicodedata.normalize('NFKD', col)
+        .encode('ascii', 'ignore')
+        .decode('utf-8')
+        .strip()
+        .lower()
+        for col in df.columns
+    ]
+    return df
 
 def read_file(file: UploadFile):
     
@@ -17,13 +31,20 @@ def read_file(file: UploadFile):
         
         else:
             raise ValueError("Formato no soportado")
+        
+        df = normalize_columns(df)
+        
+        df.columns = df.columns.str.strip().str.lower()
+
+        if df.empty:
+            raise ValueError("El archivo está vacío")
 
         return df
 
     except Exception as e:
         raise ValueError(f"Error al leer el archivo: {str(e)}")
     
-REQUIRED_COLUMNS = ["Folio", "Fecha", "Categoría", "Monto", "Estatus"]
+REQUIRED_COLUMNS = ["folio", "fecha", "categoria", "monto", "estatus"]
 
 def validate_columns(df):
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
@@ -37,7 +58,7 @@ def validate_rows(df):
     for index, row in df.iterrows():
         # Validar monto
         try:
-            float(row["Monto"])
+            float(row["monto"])
         except:
             errors.append({
                 "row": index,
@@ -45,7 +66,7 @@ def validate_rows(df):
             })
 
         # Validar fecha (simple)
-        if pd.isna(row["Fecha"]) or str(row["Fecha"]).strip() == "":
+        if pd.isna(row["fecha"]) or str(row["fecha"]).strip() == "":
             errors.append({
                 "row": index,
                 "error": "Fecha vacía"
@@ -53,7 +74,7 @@ def validate_rows(df):
         else:
             # Fecha mal formateada
             try:
-                pd.to_datetime(row["Fecha"])
+                pd.to_datetime(row["fecha"])
             except:
                 errors.append({
                     "row": index,
@@ -64,32 +85,32 @@ def validate_rows(df):
 def process_data(df):
     total_records = len(df)
 
-    df["Monto"] = pd.to_numeric(df["Monto"], errors="coerce")
+    df["monto"] = pd.to_numeric(df["monto"], errors="coerce")
 
-    valid_df = df.dropna(subset=["Monto"])
+    valid_df = df.dropna(subset=["monto"])
 
-    total_amount = valid_df["Monto"].sum()
+    total_amount = valid_df["monto"].sum()
 
-    by_status = df.groupby("Estatus").size().to_dict()
+    by_status = df.groupby("estatus").size().to_dict()
 
-    by_category = df.groupby("Categoría")["Monto"].sum().to_dict()
+    by_category = df.groupby("categoria")["monto"].sum().to_dict()
 
     return {
-        "total_records": total_records,
-        "total_amount": total_amount,
-        "by_status": by_status,
-        "by_category": by_category
+        "total_records": int(len(df)),
+        "total_amount": float(df["monto"].sum()),
+        "by_status": {k: int(v) for k, v in df["estatus"].value_counts().to_dict().items()},
+        "by_category": {k: float(v) for k, v in df.groupby("categoria")["monto"].sum().to_dict().items()}
     }
 
 def detect_duplicates(df):
-    duplicates = df[df.duplicated(subset=["Folio"], keep=False)]
+    duplicates = df[df.duplicated(subset=["folio"], keep=False)]
 
     errors = []
 
     for index, row in duplicates.iterrows():
         errors.append({
             "row": index,
-            "error": f"Folio duplicado: {row['Folio']}"
+            "error": f"Folio duplicado: {row['folio']}"
         })
 
     return errors
@@ -99,7 +120,7 @@ def validate_date_format(df):
 
     for index, row in df.iterrows():
         try:
-            pd.to_datetime(row["Fecha"])
+            pd.to_datetime(row["fecha"])
         except:
             errors.append({
                 "row": index,
@@ -107,3 +128,16 @@ def validate_date_format(df):
             })
 
     return errors
+
+def save_to_db(df):
+    df = df.rename(columns={
+        "Folio": "folio",
+        "Fecha": "fecha",
+        "Categoría": "categoria",
+        "Monto": "monto",
+        "Estatus": "estatus"
+    })
+
+    df = df[["folio", "fecha", "categoria", "monto", "estatus"]]
+
+    df.to_sql("transactions", con=engine, if_exists="append", index=False)
