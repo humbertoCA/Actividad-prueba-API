@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.services.processor import read_file, validate_columns, validate_rows, process_data, detect_duplicates 
 from app.services.processor import save_to_db
+from app.db.database import engine, transactions
 
 router = APIRouter()
 
@@ -31,7 +32,9 @@ async def upload_file(file: UploadFile = File(...)):
 
         result = process_data(df)
 
-        save_to_db(df)
+        if not errors:
+            print("Guardando en DB...")
+            save_to_db(df, engine, transactions)
 
         df = df.dropna(subset=["monto"])
 

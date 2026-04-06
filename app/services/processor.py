@@ -129,14 +129,13 @@ def validate_date_format(df):
 
     return errors
 
-def save_to_db(df):
-    df = df.rename(columns={
-        "Folio": "folio",
-        "Fecha": "fecha",
-        "Categoría": "categoria",
-        "Monto": "monto",
-        "Estatus": "estatus"
-    })
+def save_to_db(df, engine, table):
+    
+    records = df.to_dict(orient="records")
+
+    with engine.connect() as conn:
+        conn.execute(table.insert(), records)
+        conn.commit()
 
     df = df[["folio", "fecha", "categoria", "monto", "estatus"]]
 
