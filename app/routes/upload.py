@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.services.processor import read_file, validate_columns, validate_rows, process_data, detect_duplicates 
 from app.services.processor import save_to_db
 from app.db.database import engine, transactions
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 
@@ -32,9 +33,15 @@ async def upload_file(file: UploadFile = File(...)):
 
         result = process_data(df)
 
-        if not errors:
-            print("Guardando en DB...")
-            save_to_db(df, engine, transactions)
+        try:
+            if not errors:
+                save_to_db(df, engine, transactions)
+
+        except IntegrityError:
+            raise HTTPException(
+                status_code=400,
+                detail="Ya existen registros con el mismo folio (duplicados)"
+    )
 
         df = df.dropna(subset=["monto"])
 
