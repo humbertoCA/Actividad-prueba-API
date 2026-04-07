@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.services.processor import read_file, validate_columns, validate_rows, process_data, detect_duplicates 
-from app.services.processor import save_to_db
+from app.services.processor import save_to_db, check_existing_folios
 from app.db.database import engine, transactions
 from sqlalchemy.exc import IntegrityError
 
@@ -32,6 +32,8 @@ async def upload_file(file: UploadFile = File(...)):
         errors = row_errors + duplicate_errors #Union de errores
 
         result = process_data(df)
+
+        check_existing_folios(df, engine)
 
         try:
             if not errors:

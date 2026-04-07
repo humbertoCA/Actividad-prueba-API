@@ -3,6 +3,7 @@ import unicodedata
 from fastapi import UploadFile
 from app.db.database import engine
 from app.db.models import transactions
+from sqlalchemy import text
 
 def normalize_columns(df):
     df.columns = [
@@ -115,6 +116,18 @@ def detect_duplicates(df):
 
     return errors
 
+def check_existing_folios(df, engine):
+    folios = df["folio"].tolist()
+    
+    query = f"SELECT folio FROM transactions WHERE folio IN ({','.join(map(str, folios))})"
+    
+    with engine.connect() as conn:
+        result = conn.execute(text(query), {"folios": tuple(folios)})
+        existing = sorted(set([row[0] for row in result]))
+    
+    if existing:
+        raise ValueError(f"Folios ya existen en DB: {existing}")
+    
 def validate_date_format(df):
     errors = []
 
