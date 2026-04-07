@@ -1,7 +1,12 @@
+import os
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, Date
 from app.db.models import metadata
 
-DATABASE_URL = f"mysql+pymysql://root:rootroot@localhost/test_db"
+
+if os.getenv("ENV") == "docker":
+    DATABASE_URL = "mysql+pymysql://root:rootroot@db:3306/test_db"
+else:
+    DATABASE_URL = "mysql+pymysql://root:rootroot@localhost:3306/test_db"
 
 engine = create_engine(DATABASE_URL)
 metadata = MetaData()
