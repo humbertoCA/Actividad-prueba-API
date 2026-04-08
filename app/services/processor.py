@@ -121,7 +121,6 @@ def check_existing_folios(df, engine):
     with engine.connect() as conn: #Abre la conexion a la DB con SQLAlchemy
         result = conn.execute(text(query), {"folios": tuple(folios)})
         existing = sorted(set([row[0] for row in result]))
-    
     if existing:
         raise ValueError(f"Folios ya existen en DB: {existing}")
 
@@ -135,4 +134,4 @@ def save_to_db(df, engine, table):
 
     df = df[["folio", "fecha", "categoria", "monto", "estatus"]]
 
-    df.to_sql("transactions", con=engine, if_exists="append", index=False)
+    #df.to_sql("transactions", con=engine, if_exists="append", index=False)
